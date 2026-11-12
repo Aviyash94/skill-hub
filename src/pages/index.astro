@@ -1,0 +1,110 @@
+---
+import data from '../data/skills.json';
+const { skills, categories, generatedAt } = data;
+const tags = [...new Set(skills.flatMap((s) => s.tags))].sort();
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Skills Hub</title>
+    <meta name="description" content="Find agent skills for app development that work with Claude Code, Cursor, Codex and more." />
+    <style>
+      :root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --card:#f6f6f7; --line:#e2e2e5; --accent:#4f46e5; }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg:#111214; --fg:#ececee; --muted:#9a9aa3; --card:#1a1b1e; --line:#2a2b30; --accent:#8b85ff; }
+      }
+      * { box-sizing: border-box; }
+      body { margin:0; font:16px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
+      main { max-width:960px; margin:0 auto; padding:32px 16px; }
+      h1 { margin:0 0 4px; } .sub { color:var(--muted); margin:0 0 24px; }
+      .controls { display:grid; gap:8px; grid-template-columns:1fr; margin-bottom:16px; }
+      @media (min-width:640px) { .controls { grid-template-columns:2fr 1fr 1fr; } }
+      input, select { padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); font:inherit; width:100%; }
+      .count { color:var(--muted); font-size:14px; margin-bottom:12px; }
+      .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:12px; }
+      .card h2 { margin:0 0 4px; font-size:18px; }
+      .card p { margin:4px 0 12px; color:var(--muted); }
+      .meta { display:flex; flex-wrap:wrap; gap:6px; font-size:12px; margin-bottom:12px; }
+      .pill { border:1px solid var(--line); border-radius:99px; padding:2px 8px; }
+      .cmd { display:flex; gap:8px; align-items:center; }
+      code { flex:1; overflow-x:auto; white-space:nowrap; padding:8px; border-radius:6px; background:var(--bg); border:1px solid var(--line); font-size:13px; }
+      button { padding:8px 12px; border:0; border-radius:6px; background:var(--accent); color:#fff; cursor:pointer; font:inherit; }
+      a { color:var(--accent); }
+      [hidden] { display:none !important; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Skills Hub</h1>
+      <p class="sub">Agent skills for app development. Works with Claude Code, Cursor, Codex and 40+ more via <code style="padding:2px 6px">npx skills add</code>.</p>
+
+      <div class="controls">
+        <input id="q" type="search" placeholder="Search skills…" aria-label="Search skills" />
+        <select id="cat" aria-label="Category">
+          <option value="">All categories</option>
+          {categories.map((c) => <option>{c}</option>)}
+        </select>
+        <select id="tag" aria-label="Language or framework">
+          <option value="">All stacks</option>
+          {tags.map((t) => <option>{t}</option>)}
+        </select>
+      </div>
+      <div class="count" id="count"></div>
+
+      <div id="list">
+        {skills.map((s) => (
+          <article class="card" data-text={`${s.name} ${s.description}`.toLowerCase()} data-cat={s.category} data-tags={s.tags.join(',')}>
+            <h2>{s.name}</h2>
+            <p>{s.description}</p>
+            <div class="meta">
+              <span class="pill">{s.category}</span>
+              {s.tags.map((t) => <span class="pill">{t}</span>)}
+              <span class="pill">{s.license}</span>
+              <span class="pill">★ {s.stars} (repo)</span>
+              <span class="pill">updated {s.updatedAt.slice(0, 10)}</span>
+              <a href={s.url} rel="noopener">source</a>
+            </div>
+            <div class="cmd">
+              <code>{s.install}</code>
+              <button type="button" data-copy={s.install}>Copy</button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <p class="sub" style="margin-top:24px">Index generated {generatedAt.slice(0, 10)}. Skills run with full agent permissions: review before installing.</p>
+    </main>
+
+    <script>
+      const q = document.getElementById('q') as HTMLInputElement;
+      const cat = document.getElementById('cat') as HTMLSelectElement;
+      const tag = document.getElementById('tag') as HTMLSelectElement;
+      const count = document.getElementById('count')!;
+      const cards = [...document.querySelectorAll<HTMLElement>('#list .card')];
+
+      function apply() {
+        const terms = q.value.toLowerCase().split(/\s+/).filter(Boolean);
+        let n = 0;
+        for (const c of cards) {
+          const ok =
+            terms.every((t) => c.dataset.text!.includes(t)) &&
+            (!cat.value || c.dataset.cat === cat.value) &&
+            (!tag.value || c.dataset.tags!.split(',').includes(tag.value));
+          c.hidden = !ok;
+          if (ok) n++;
+        }
+        count.textContent = `${n} skill${n === 1 ? '' : 's'}`;
+      }
+      [q, cat, tag].forEach((el) => el.addEventListener('input', apply));
+      document.addEventListener('click', async (e) => {
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-copy]');
+        if (!b) return;
+        try { await navigator.clipboard.writeText(b.dataset.copy!); b.textContent = 'Copied'; }
+        catch { b.textContent = 'Copy failed'; }
+        setTimeout(() => (b.textContent = 'Copy'), 1500);
+      });
+      apply();
+    </script>
+  </body>
+</html>

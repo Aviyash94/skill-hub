@@ -1,0 +1,20 @@
+name: Daily rebuild
+# Vercel builds the site on every push (Git integration). This workflow only
+# triggers a rebuild each day so the skill index (generated at build time) stays fresh.
+# Setup: Vercel project → Settings → Git → Deploy Hooks → create one for `main`,
+# then save its URL as the repo secret VERCEL_DEPLOY_HOOK.
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel deploy hook
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          test -n "$HOOK" || { echo "VERCEL_DEPLOY_HOOK secret is not set"; exit 1; }
+          curl --fail --silent --show-error -X POST "$HOOK"

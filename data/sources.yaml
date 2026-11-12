@@ -1,0 +1,112 @@
+# Allowlist of trusted repositories. Only repos listed here are indexed.
+# Add a repo = review it first: skills run with full agent permissions.
+#
+# Fields per source:
+#   repo:            owner/name on GitHub
+#   ref:             branch or tag to index (default: repo default branch)
+#   perSkillLicense: true = repo has no clear license; check each skill's own license
+#   category:        default category for skills in this repo
+#   tags:            default language/framework tags
+#   exclude:         path prefixes to skip (e.g. work-in-progress folders)
+#   rules:           ordered list of {path?, name?, category?, tags?}. `path`/`name` are
+#                    case-insensitive regexes. Every matching rule applies in order:
+#                    the last `category` wins, `tags` accumulate.
+#   overrides:       per-skill exceptions keyed by skill name {category, tags}; applied last
+
+categories:
+  - Planning & Design
+  - Frontend
+  - Backend
+  - Testing
+  - DevOps
+  - Documentation
+  - Code Quality
+  - Productivity
+  - Data & AI
+  - Other
+
+sources:
+  - repo: mattpocock/skills
+    category: Productivity
+    exclude: [skills/in-progress/]
+    rules:
+      - { name: '^(grill|to-spec|to-tickets|to-questionnaire|implement-spec|wayfinder|domain-modeling|codebase-design|improve-codebase-architecture|prototype|research|wizard)', category: Planning & Design }
+      - { name: '^(tdd|migrate-to-shoehorn)$', category: Testing, tags: [typescript] }
+      - { name: '^setup-ts-deep-modules$', category: Code Quality, tags: [typescript] }
+      - { name: '^(code-review|diagnosing-bugs|git-guardrails|setup-pre-commit|triage)', category: Code Quality }
+      - { name: '^writing-', category: Documentation }
+
+  - repo: obra/superpowers
+    category: Productivity
+    rules:
+      - { name: '^(brainstorming|writing-plans|executing-plans)$', category: Planning & Design }
+      - { name: '^(test-driven-development|verification-before-completion)$', category: Testing }
+      - { name: '(code-review|debugging|finishing-a-development-branch)', category: Code Quality }
+
+  - repo: getsentry/skills
+    category: Code Quality
+    rules:
+      - { name: '^(blog-writing-guide|brand-guidelines|doc-coauthoring|document-api-endpoint|presentation-creator|pr-writer)$', category: Documentation }
+      - { name: '^(commit|create-branch|iterate-pr|pr-link-issue|pr-screenshots|gh-review-requests|gha-security-review)$', category: DevOps }
+      - { name: '^django', tags: [django, python] }
+      - { name: '^triage-frontend', category: Frontend }
+      - { name: 'security', tags: [security] }
+      - { name: '^(agents-md|claude-settings-audit|prompt-optimizer|skill-scanner|skill-writer|sred-)', category: Productivity }
+
+  - repo: anthropics/skills
+    perSkillLicense: true
+    category: Other
+    rules:
+      - { name: '^(frontend-design|web-artifacts-builder|theme-factory|canvas-design|algorithmic-art|slack-gif-creator)$', category: Frontend }
+      - { name: '^webapp-testing$', category: Testing }
+      - { name: '^mcp-builder$', category: Backend }
+      - { name: '^claude-api$', category: Data & AI }
+      - { name: '^(doc-coauthoring|internal-comms|brand-guidelines|docx|pdf|pptx|xlsx)$', category: Documentation }
+      - { name: '^(skill-creator|discernment-nudge)$', category: Productivity }
+      - { name: '^academy-guide$', category: Documentation }
+
+  - repo: vercel-labs/agent-skills
+    perSkillLicense: true
+    category: Frontend
+    tags: [react]
+    rules:
+      - { name: '^react-native', tags: [react-native] }
+      - { name: '^(react-best-practices|composition-patterns|react-view-transitions)$', tags: [nextjs] }
+      - { name: 'vercel', category: DevOps, tags: [vercel] }
+      - { name: '^writing-guidelines$', category: Documentation }
+
+  - repo: openai/skills
+    perSkillLicense: true
+    category: Productivity
+    rules:
+      - { name: '(deploy|^cloudflare|gh-fix-ci)', category: DevOps }
+      - { name: '^(playwright|screenshot)', category: Testing }
+      - { name: '^figma', category: Frontend, tags: [figma] }
+      - { name: '^(notion|pdf$|openai-docs)', category: Documentation }
+      - { name: '^(security|gh-address-comments)', category: Code Quality }
+      - { name: '^(aspnet-core|winui-app)$', category: Backend, tags: [dotnet] }
+      - { name: '^(imagegen|speech|transcribe|jupyter-notebook)', category: Data & AI }
+      - { name: '^(chatgpt-apps)$', category: Frontend }
+
+  - repo: microsoft/skills
+    category: DevOps
+    tags: [azure]
+    rules:
+      - { path: 'azure-sdk-python', category: Backend, tags: [python] }
+      - { path: 'azure-sdk-dotnet', category: Backend, tags: [dotnet] }
+      - { path: 'azure-sdk-java', category: Backend, tags: [java] }
+      - { path: 'azure-sdk-typescript', category: Backend, tags: [typescript] }
+      - { path: 'azure-sdk-rust', category: Backend, tags: [rust] }
+      - { path: 'deep-wiki', category: Documentation }
+      - { path: 'microsoft-365-agents-toolkit', category: Backend, tags: [microsoft-365, teams] }
+      - { path: '(foundry|kusto-graph)', category: Data & AI, tags: [ai] }
+      - { path: 'aks-skills|azure-kubernetes', tags: [kubernetes] }
+      - { path: '^\.github/skills/', category: Other, tags: [] }
+      # Specific skills in .github/skills (run after the folder rule above)
+      - { name: '^(cloud-solution-architect)$', category: Planning & Design }
+      - { name: '^(continual-learning|github-issue-creator|skill-creator)$', category: Productivity }
+      - { name: '^(copilot-sdk|mcp-builder)$', category: Backend }
+      - { name: '^debugview$', category: Code Quality, tags: [windows] }
+      - { name: '^frontend-design-review$', category: Frontend }
+      - { name: '^(kql|podcast-generation)$', category: Data & AI }
+      - { name: '^microsoft-docs$', category: Documentation }
