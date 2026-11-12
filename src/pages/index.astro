@@ -1,47 +1,188 @@
 ---
 import data from '../data/skills.json';
-const { skills, categories, generatedAt } = data;
-const tags = [...new Set(skills.flatMap((s) => s.tags))].sort();
+const { skills, categories, repos, generatedAt } = data;
+const tags = [...new Set(skills.flatMap((s) => s.tags))].sort((a, b) => a.localeCompare(b));
+const slug = (c) => c.toLowerCase().replace(/&/g, 'and').replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+const glyphs = ['{ }', '</>', '=>', '[ ]', '();', '&&', '#!', '0x1F', '//', '::', '++', '$_'];
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Skills Hub</title>
     <meta name="description" content="Find agent skills for app development that work with Claude Code, Cursor, Codex and more." />
-    <style>
-      :root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --card:#f6f6f7; --line:#e2e2e5; --accent:#4f46e5; }
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet" />
+    <style is:global>
+      :root {
+        --bg: #fdf6ff; --bg2: #eef6ff; --ink: #3b3552; --muted: #6b6585;
+        --card: rgba(255, 255, 255, 0.78); --line: #e4d6f3; --shadow: rgba(140, 110, 200, 0.22);
+        --pill-ink: #2f2a45; --term: #fffdf5; --btn: #3b3552; --btn-ink: #fff;
+        --pink: #ffc8dd; --lav: #cdb4ff; --blue: #bde0fe; --mint: #b9fbc0;
+        --yellow: #fff1a8; --peach: #ffd6a5; --coral: #ffb5b5; --aqua: #a0f0ed; --violet: #e2c2ff; --grey: #dcdcec;
+        --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
       @media (prefers-color-scheme: dark) {
-        :root { --bg:#111214; --fg:#ececee; --muted:#9a9aa3; --card:#1a1b1e; --line:#2a2b30; --accent:#8b85ff; }
+        :root {
+          --bg: #1e1b2e; --bg2: #1a2237; --ink: #ece8ff; --muted: #b7b0d6;
+          --card: rgba(46, 42, 70, 0.78); --line: #3d3860; --shadow: rgba(0, 0, 0, 0.45);
+          --term: #26223b; --btn: #cdb4ff; --btn-ink: #2a2545;
+        }
       }
       * { box-sizing: border-box; }
-      body { margin:0; font:16px/1.5 system-ui,sans-serif; background:var(--bg); color:var(--fg); }
-      main { max-width:960px; margin:0 auto; padding:32px 16px; }
-      h1 { margin:0 0 4px; } .sub { color:var(--muted); margin:0 0 24px; }
-      .controls { display:grid; gap:8px; grid-template-columns:1fr; margin-bottom:16px; }
-      @media (min-width:640px) { .controls { grid-template-columns:2fr 1fr 1fr; } }
-      input, select { padding:10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); font:inherit; width:100%; }
-      .count { color:var(--muted); font-size:14px; margin-bottom:12px; }
-      .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:12px; }
-      .card h2 { margin:0 0 4px; font-size:18px; }
-      .card p { margin:4px 0 12px; color:var(--muted); }
-      .meta { display:flex; flex-wrap:wrap; gap:6px; font-size:12px; margin-bottom:12px; }
-      .pill { border:1px solid var(--line); border-radius:99px; padding:2px 8px; }
-      .cmd { display:flex; gap:8px; align-items:center; }
-      code { flex:1; overflow-x:auto; white-space:nowrap; padding:8px; border-radius:6px; background:var(--bg); border:1px solid var(--line); font-size:13px; }
-      button { padding:8px 12px; border:0; border-radius:6px; background:var(--accent); color:#fff; cursor:pointer; font:inherit; }
-      a { color:var(--accent); }
-      [hidden] { display:none !important; }
+      html { scroll-behavior: smooth; }
+
+      /* Themed scrollbars: same size and style everywhere (page + command boxes) */
+      :root { --sb-track: rgba(205, 180, 255, 0.22); --sb-size: 10px; }
+      @media (prefers-color-scheme: dark) { :root { --sb-track: rgba(205, 180, 255, 0.12); } }
+      *::-webkit-scrollbar { width: var(--sb-size); height: var(--sb-size); }
+      *::-webkit-scrollbar-track { background: var(--sb-track); border-radius: 99px; }
+      *::-webkit-scrollbar-thumb {
+        background: linear-gradient(90deg, var(--pink), var(--lav), var(--blue));
+        border-radius: 99px; border: 2px solid transparent; background-clip: padding-box;
+      }
+      *::-webkit-scrollbar-thumb:hover { background: linear-gradient(90deg, #ff9fc4, #b79bff, #7cc4fb); background-clip: padding-box; }
+      *::-webkit-scrollbar-corner { background: transparent; }
+      @supports (-moz-appearance: none) {
+        * { scrollbar-width: thin; scrollbar-color: var(--lav) var(--sb-track); }
+      }
+      body {
+        margin: 0; font: 15px/1.6 var(--mono); color: var(--ink); min-height: 100vh;
+        background: linear-gradient(120deg, var(--bg), var(--bg2), var(--bg));
+        background-size: 300% 300%; animation: bgshift 24s ease infinite;
+        overflow-x: hidden;
+      }
+      body::before { /* dotted grid */
+        content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.5;
+        background-image: radial-gradient(var(--line) 1.2px, transparent 1.2px); background-size: 26px 26px;
+      }
+      /* drifting pastel blobs + floating code glyphs */
+      .bg { position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden; }
+      .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.55; animation: drift 22s ease-in-out infinite alternate; }
+      .b1 { width: 380px; height: 380px; background: var(--pink); top: -80px; left: -60px; }
+      .b2 { width: 420px; height: 420px; background: var(--blue); top: 30%; right: -120px; animation-duration: 28s; }
+      .b3 { width: 340px; height: 340px; background: var(--mint); bottom: -90px; left: 25%; animation-duration: 25s; }
+      .b4 { width: 260px; height: 260px; background: var(--lav); top: 55%; left: -80px; animation-duration: 31s; }
+      .glyph { position: absolute; bottom: -40px; font-weight: 800; color: var(--lav); opacity: 0.45; animation: floatup linear infinite; }
+
+      main { max-width: 1000px; margin: 0 auto; padding: 28px 16px 56px; }
+
+      /* terminal hero */
+      .term { background: var(--term); border: 2px solid var(--line); border-radius: 16px; box-shadow: 0 12px 40px var(--shadow); overflow: hidden; animation: rise 0.7s both; }
+      .bar { display: flex; align-items: center; gap: 7px; padding: 10px 14px; background: linear-gradient(90deg, var(--pink), var(--lav), var(--blue)); }
+      .bar i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+      .bar i:nth-child(1) { background: #ff8fa3; } .bar i:nth-child(2) { background: #ffd166; } .bar i:nth-child(3) { background: #7ee0a1; }
+      .bar span { margin-left: 8px; font-size: 12px; color: var(--pill-ink); font-weight: 600; }
+      .body { padding: 22px 22px 20px; }
+      h1 { margin: 0 0 6px; font-size: clamp(30px, 6vw, 48px); font-weight: 800; letter-spacing: -1px; line-height: 1.1;
+        background: linear-gradient(90deg, #ff8fb8, #a78bfa, #60b6f5, #5fdca0, #ff8fb8); background-size: 300% 100%;
+        -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 8s linear infinite; }
+      .cursor { display: inline-block; width: 0.55em; height: 1em; margin-left: 4px; vertical-align: -0.12em; background: #a78bfa; animation: blink 1s steps(1) infinite; border-radius: 2px; }
+      .typed { min-height: 1.6em; color: var(--muted); margin: 4px 0 16px; }
+      .typed b { color: #e0709a; font-weight: 600; }
+      .stats { display: flex; flex-wrap: wrap; gap: 10px; }
+      .stat { background: var(--pill); border-radius: 12px; padding: 6px 12px; color: var(--pill-ink); font-weight: 600; font-size: 13px; }
+      .stat:nth-child(1) { --pill: var(--pink); } .stat:nth-child(2) { --pill: var(--blue); }
+      .stat:nth-child(3) { --pill: var(--mint); } .stat:nth-child(4) { --pill: var(--yellow); }
+
+      /* controls */
+      .controls { display: grid; gap: 10px; grid-template-columns: 1fr; margin: 22px 0 12px; animation: rise 0.7s 0.15s both; }
+      @media (min-width: 680px) { .controls { grid-template-columns: 2fr 1fr 1fr; } }
+      .field { position: relative; }
+      .field::before { content: '>'; position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #a78bfa; font-weight: 800; pointer-events: none; }
+      input, select {
+        width: 100%; padding: 12px 14px; font: inherit; color: var(--ink); background: var(--card);
+        border: 2px solid var(--line); border-radius: 12px; transition: border-color .2s, box-shadow .2s, transform .2s; backdrop-filter: blur(6px);
+      }
+      input { padding-left: 34px; }
+      input:hover, select:hover { transform: translateY(-1px); }
+      input:focus, select:focus { outline: none; border-color: #a78bfa; box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.28); }
+      .count { color: var(--muted); font-size: 13px; margin: 0 0 14px 2px; }
+      .count b { display: inline-block; color: #d6639a; animation: pop .35s; }
+
+      /* cards */
+      .grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+      @media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
+      .card {
+        --c: var(--grey); position: relative; background: var(--card); border: 2px solid var(--line); border-radius: 16px;
+        padding: 16px 16px 14px 20px; overflow: hidden; backdrop-filter: blur(6px);
+        display: flex; flex-direction: column;
+        animation: rise .6s both; animation-delay: calc(var(--i, 0) * 45ms + 250ms);
+        transition: transform .25s cubic-bezier(.2, .9, .3, 1.4), box-shadow .25s, border-color .25s;
+      }
+      .card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--c); transition: width .25s; }
+      .card:hover { transform: translateY(-5px) rotate(-0.4deg); border-color: var(--c); box-shadow: 0 14px 30px var(--shadow); }
+      .card:hover::before { width: 12px; }
+      [data-key='planning-and-design'] { --c: var(--lav); } [data-key='frontend'] { --c: var(--pink); }
+      [data-key='backend'] { --c: var(--blue); } [data-key='testing'] { --c: var(--mint); }
+      [data-key='devops'] { --c: var(--peach); } [data-key='documentation'] { --c: var(--yellow); }
+      [data-key='code-quality'] { --c: var(--aqua); } [data-key='productivity'] { --c: var(--coral); }
+      [data-key='data-and-ai'] { --c: var(--violet); } [data-key='other'] { --c: var(--grey); }
+      .card h2 { margin: 0 0 4px; font-size: 16px; font-weight: 800; word-break: break-word; }
+      .card h2::before { content: '# '; color: #a78bfa; }
+      .card p { margin: 4px 0 12px; color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+      .meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px; margin-bottom: 12px; align-items: center; }
+      .pill { border-radius: 99px; padding: 2px 9px; background: color-mix(in srgb, var(--c) 55%, transparent); color: var(--ink); border: 1px solid var(--c); }
+      .pill.cat { background: var(--c); color: var(--pill-ink); font-weight: 600; }
+      .pill.plain { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
+      .meta a { color: #8b6cf0; text-decoration: none; border-bottom: 1px dashed currentColor; }
+      .meta a:hover { color: #d6639a; }
+      @media (prefers-color-scheme: dark) { .meta a { color: #c4b5ff; } }
+      .cmd { display: flex; gap: 8px; align-items: stretch; margin-top: auto; } /* pinned to card bottom: aligned across a row */
+      .cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 8px 10px; border-radius: 10px; background: var(--term); border: 1px solid var(--line); font-size: 12px; }
+      .cmd code::before { content: '$ '; color: #5fb98a; font-weight: 800; }
+      button {
+        padding: 0 14px; border: 0; border-radius: 10px; background: var(--btn); color: var(--btn-ink); cursor: pointer;
+        font: inherit; font-size: 12px; font-weight: 700; transition: transform .15s, filter .2s;
+      }
+      button:hover { transform: scale(1.06) rotate(-1.5deg); filter: brightness(1.1); }
+      button:active { transform: scale(0.94); }
+      button.done { background: #5fdca0; color: #123d27; animation: pop .35s; }
+      a:focus-visible, button:focus-visible { outline: 3px solid #a78bfa; outline-offset: 2px; }
+      .empty { text-align: center; color: var(--muted); padding: 40px 0; animation: rise .4s both; }
+      footer { margin-top: 32px; color: var(--muted); font-size: 12px; text-align: center; }
+      [hidden] { display: none !important; }
+
+      @keyframes bgshift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+      @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(60px, -50px) scale(1.15); } }
+      @keyframes floatup { from { transform: translateY(0) rotate(0deg); opacity: 0; } 10% { opacity: .45; } to { transform: translateY(-110vh) rotate(25deg); opacity: 0; } }
+      @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+      @keyframes blink { 50% { opacity: 0; } }
+      @keyframes shine { to { background-position: 300% 0; } }
+      @keyframes pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+        .glyph { display: none; }
+      }
     </style>
   </head>
   <body>
+    <div class="bg" aria-hidden="true">
+      <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div>
+      {glyphs.map((g, i) => (
+        <span class="glyph" style={`left:${(i * 8.3 + 3) % 96}%;font-size:${16 + (i % 4) * 8}px;animation-duration:${14 + (i % 5) * 4}s;animation-delay:${-i * 2.3}s`}>{g}</span>
+      ))}
+    </div>
+
     <main>
-      <h1>Skills Hub</h1>
-      <p class="sub">Agent skills for app development. Works with Claude Code, Cursor, Codex and 40+ more via <code style="padding:2px 6px">npx skills add</code>.</p>
+      <section class="term">
+        <div class="bar"><i></i><i></i><i></i><span>~/skills-hub — zsh</span></div>
+        <div class="body">
+          <h1>Skills Hub<span class="cursor"></span></h1>
+          <div class="typed" id="typed" aria-live="off">$ <b>npx skills add</b> &lt;repo&gt; --skill &lt;name&gt;</div>
+          <div class="stats">
+            <span class="stat"><span data-count={skills.length}>{skills.length}</span> skills</span>
+            <span class="stat"><span data-count={repos.length}>{repos.length}</span> trusted repos</span>
+            <span class="stat"><span data-count={categories.length}>{categories.length}</span> categories</span>
+            <span class="stat">40+ AI agents</span>
+          </div>
+        </div>
+      </section>
 
       <div class="controls">
-        <input id="q" type="search" placeholder="Search skills…" aria-label="Search skills" />
+        <div class="field"><input id="q" type="search" placeholder="grep skills…" aria-label="Search skills" autocomplete="off" /></div>
         <select id="cat" aria-label="Category">
           <option value="">All categories</option>
           {categories.map((c) => <option>{c}</option>)}
@@ -51,20 +192,26 @@ const tags = [...new Set(skills.flatMap((s) => s.tags))].sort();
           {tags.map((t) => <option>{t}</option>)}
         </select>
       </div>
-      <div class="count" id="count"></div>
+      <div class="count" id="count" aria-live="polite"></div>
 
-      <div id="list">
-        {skills.map((s) => (
-          <article class="card" data-text={`${s.name} ${s.description}`.toLowerCase()} data-cat={s.category} data-tags={s.tags.join(',')}>
+      <div class="grid" id="list">
+        {skills.map((s, i) => (
+          <article
+            class="card"
+            style={`--i:${Math.min(i, 14)}`}
+            data-key={slug(s.category)}
+            data-text={`${s.name} ${s.description}`.toLowerCase()}
+            data-cat={s.category}
+            data-tags={s.tags.join(',')}
+          >
             <h2>{s.name}</h2>
             <p>{s.description}</p>
             <div class="meta">
-              <span class="pill">{s.category}</span>
+              <span class="pill cat">{s.category}</span>
               {s.tags.map((t) => <span class="pill">{t}</span>)}
-              <span class="pill">{s.license}</span>
-              <span class="pill">★ {s.stars} (repo)</span>
-              <span class="pill">updated {s.updatedAt.slice(0, 10)}</span>
-              <a href={s.url} rel="noopener">source</a>
+              <span class="pill plain">{s.license}</span>
+              <span class="pill plain">★ {s.stars} repo</span>
+              <a href={s.url} rel="noopener">source ↗</a>
             </div>
             <div class="cmd">
               <code>{s.install}</code>
@@ -73,14 +220,17 @@ const tags = [...new Set(skills.flatMap((s) => s.tags))].sort();
           </article>
         ))}
       </div>
-      <p class="sub" style="margin-top:24px">Index generated {generatedAt.slice(0, 10)}. Skills run with full agent permissions: review before installing.</p>
+      <p class="empty" id="empty" hidden>404: no skills found. Try a different search ¯\_(ツ)_/¯</p>
+      <footer>index generated {generatedAt.slice(0, 10)} · skills run with full agent permissions, review before installing</footer>
     </main>
 
     <script>
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       const q = document.getElementById('q') as HTMLInputElement;
       const cat = document.getElementById('cat') as HTMLSelectElement;
       const tag = document.getElementById('tag') as HTMLSelectElement;
       const count = document.getElementById('count')!;
+      const empty = document.getElementById('empty')!;
       const cards = [...document.querySelectorAll<HTMLElement>('#list .card')];
 
       function apply() {
@@ -94,16 +244,61 @@ const tags = [...new Set(skills.flatMap((s) => s.tags))].sort();
           c.hidden = !ok;
           if (ok) n++;
         }
-        count.textContent = `${n} skill${n === 1 ? '' : 's'}`;
+        count.innerHTML = `<b>${n}</b> skill${n === 1 ? '' : 's'} found`;
+        empty.hidden = n !== 0;
       }
       [q, cat, tag].forEach((el) => el.addEventListener('input', apply));
+
       document.addEventListener('click', async (e) => {
         const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-copy]');
         if (!b) return;
-        try { await navigator.clipboard.writeText(b.dataset.copy!); b.textContent = 'Copied'; }
-        catch { b.textContent = 'Copy failed'; }
-        setTimeout(() => (b.textContent = 'Copy'), 1500);
+        try {
+          await navigator.clipboard.writeText(b.dataset.copy!);
+          b.textContent = 'Copied ✓';
+          b.classList.add('done');
+        } catch {
+          b.textContent = 'Copy failed';
+        }
+        setTimeout(() => { b.textContent = 'Copy'; b.classList.remove('done'); }, 1600);
       });
+
+      // Count-up for the stat badges.
+      if (!reduce) {
+        document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
+          const target = Number(el.dataset.count);
+          const start = performance.now();
+          const tick = (now: number) => {
+            const p = Math.min((now - start) / 1200, 1);
+            el.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+            if (p < 1) requestAnimationFrame(tick);
+          };
+          el.textContent = '0';
+          requestAnimationFrame(tick);
+        });
+      }
+
+      // Typewriter in the terminal header.
+      const typed = document.getElementById('typed')!;
+      const lines = [
+        'npx skills add <repo> --skill <name>',
+        'grep -r "react" ./skills --pretty',
+        'works with Claude Code, Cursor, Codex…',
+        'git commit -m "ship it faster"',
+      ];
+      const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (!reduce) {
+        let li = 0, ci = 0, del = false;
+        const step = () => {
+          const line = lines[li];
+          ci += del ? -1 : 1;
+          typed.innerHTML = `$ <b>${esc(line.slice(0, ci))}</b>`;
+          let wait = del ? 25 : 55;
+          if (!del && ci === line.length) { del = true; wait = 1800; }
+          else if (del && ci === 0) { del = false; li = (li + 1) % lines.length; wait = 350; }
+          setTimeout(step, wait);
+        };
+        step();
+      }
       apply();
     </script>
   </body>
